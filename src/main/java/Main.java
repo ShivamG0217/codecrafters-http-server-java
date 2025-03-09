@@ -37,7 +37,13 @@ public class Main {
          clientSocket.getOutputStream().write(
                  "HTTP/1.1 200 OK\r\n\r\n".getBytes()
          );
-       }else{
+       } else if (path.matches("/echo/.*")) {
+            String message = path.split("/")[2];
+            int length = message.length();
+            clientSocket.getOutputStream().write(
+                    ("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: "+ length +"\r\n\r\n" + message).getBytes()
+            );
+       } else{
             clientSocket.getOutputStream().write(
                   "HTTP/1.1 404 Not Found\r\n\r\n".getBytes()
             );
