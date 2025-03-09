@@ -24,11 +24,16 @@ public class Main {
          );
        String line;
        String path = "";
+       String userAgent = "";
        while ((line = in.readLine()) != null && !line.isEmpty()) {
          System.out.println(line);
          if (line.startsWith("GET")) {
            path = line.split(" ")[1];
               System.out.println("Path: " + path);
+         }
+         if (line.startsWith("User-Agent")) {
+           userAgent = line.split(" ",2)[1];
+              System.out.println("User-Agent Extracted: " + userAgent);
          }
        }
 //     String httpMethod = clientRequest.split();
@@ -41,9 +46,21 @@ public class Main {
             String message = path.split("/")[2];
             int length = message.length();
             clientSocket.getOutputStream().write(
-                    ("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: "+ length +"\r\n\r\n" + message).getBytes()
+                    ("HTTP/1.1 200 OK\r\n" //Status code
+                            +"Content-Type: text/plain\r\nContent-Length: "+ length +"\r\n\r\n" //Headers
+                            + message //Response Body
+                    ).getBytes()
             );
-       } else{
+       } else if (path.equals("/user-agent"))
+       {
+            int length = userAgent.length();
+            clientSocket.getOutputStream().write(
+                    ("HTTP/1.1 200 OK\r\n" //Status code
+                            +"Content-Type: text/plain\r\nContent-Length: "+ length +"\r\n\r\n" //Headers
+                            + userAgent //Response Body
+                    ).getBytes()
+            );
+       }else{
             clientSocket.getOutputStream().write(
                   "HTTP/1.1 404 Not Found\r\n\r\n".getBytes()
             );
