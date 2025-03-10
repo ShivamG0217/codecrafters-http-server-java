@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -58,20 +59,34 @@ public class Main {
           BufferedReader in = new BufferedReader(
                   new InputStreamReader(clientSocket.getInputStream())
           );
+          String method = "";
           String line;
           String path = "";
           String userAgent = "";
+          String body = "";
+          int contentLength = 0;
           while ((line = in.readLine()) != null && !line.isEmpty()) {
               System.out.println(line);
-              if (line.startsWith("GET")) {
+
+              if (line.startsWith("GET") || line.startsWith("POST")) {
+                  method = line.split(" ")[0];
                   path = line.split(" ")[1];
-                  System.out.println("Path: " + path);
               }
               if (line.startsWith("User-Agent")) {
                   userAgent = line.split(" ",2)[1];
-                  System.out.println("User-Agent Extracted: " + userAgent);
+              }
+              if (line.startsWith("Content-Length")) {
+                      contentLength = Integer.parseInt(line.split(" ")[1]);
               }
           }
+
+          // Read the body, if the request has one
+            if (contentLength > 0) {
+                char[] buffer = new char[contentLength];
+                in.read(buffer, 0, contentLength);
+                body = new String(buffer);
+                System.out.println(body);
+            }
 
           if (path.equals("/")) {
               clientSocket.getOutputStream().write(
@@ -95,24 +110,35 @@ public class Main {
                               + userAgent //Response Body
                       ).getBytes()
               );
-          }else if (path.matches("/files/.*")) {
-                String fileName = path.split("/")[2];
-                System.out.println("fileName: " + fileName);
-                File file = new File(directory + fileName);
-                if (file.exists() && file.isFile()) {
-                    byte[] fileContent = Files.readAllBytes(file.toPath());
-                    clientSocket.getOutputStream().write(
-                            ("HTTP/1.1 200 OK\r\n" // Status code
-                                    + "Content-Type: application/octet-stream\r\n"
-                                    + "Content-Length: " + fileContent.length + "\r\n\r\n" // Headers
-                                    + new String(fileContent) // Response Body
-                            ).getBytes()
-                    );
-                } else {
-                    clientSocket.getOutputStream().write(
-                            "HTTP/1.1 404 Not Found\r\n\r\n".getBytes()
-                    );
+          }else if (path.matches("/files/.*") && method.equals("GET")) {
+              String fileName = path.split("/")[2];
+              System.out.println("fileName: " + fileName);
+              File file = new File(directory + fileName);
+              if (file.exists() && file.isFile()) {
+                  byte[] fileContent = Files.readAllBytes(file.toPath());
+                  clientSocket.getOutputStream().write(
+                          ("HTTP/1.1 200 OK\r\n" // Status code
+                                  + "Content-Type: application/octet-stream\r\n"
+                                  + "Content-Length: " + fileContent.length + "\r\n\r\n" // Headers
+                                  + new String(fileContent) // Response Body
+                          ).getBytes()
+                  );
+              } else {
+                  clientSocket.getOutputStream().write(
+                          "HTTP/1.1 404 Not Found\r\n\r\n".getBytes()
+                  );
+              }
+          }else if (path.matches("/files/.*") && method.equals("POST")) {
+              String fileName = path.split("/")[2];
+              //create new file with the given name
+                File file = new File(directory, fileName);
+                if (!file.exists()) {
+                    file.createNewFile();
                 }
+                Files.write(file.toPath(), body.getBytes());
+                clientSocket.getOutputStream().write(
+                        "HTTP/1.1 201 Created\r\n\r\n".getBytes()
+                );
           } else{
               clientSocket.getOutputStream().write(
                       "HTTP/1.1 404 Not Found\r\n\r\n".getBytes()
