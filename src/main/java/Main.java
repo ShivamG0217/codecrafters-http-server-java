@@ -111,7 +111,7 @@ public class Main {
               if (acceptEncodings.contains("gzip")) {
                   clientSocket.getOutputStream().write(
                           ("HTTP/1.1 200 OK\r\n" //Status code
-                                  +"Content-Type: text/plain\r\nContent-Length: "+ length +"\r\nContent-Encoding: "+ acceptEncoding +"\r\n\r\n" //Headers
+                                  +"Content-Type: text/plain\r\nContent-Length: "+ length +"\r\nContent-Encoding: "+ "gzip" +"\r\n\r\n" //Headers
                                   + message //Response Body
                           ).getBytes()
                   );
