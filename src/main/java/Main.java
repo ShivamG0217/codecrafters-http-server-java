@@ -2,9 +2,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.nio.file.Files;
@@ -65,6 +66,7 @@ public class Main {
           String userAgent = "";
           String body = "";
           String acceptEncoding = "";
+          Set<String> acceptEncodings = new HashSet<String>();
           int contentLength = 0;
           //Request Line
           line = in.readLine();
@@ -83,7 +85,11 @@ public class Main {
                   contentLength = Integer.parseInt(line.split(" ")[1]);
               }
               if (line.startsWith("Accept-Encoding")){
-                  acceptEncoding = line.split(" ")[1];
+                  String headerValue = line.split(" ", 2)[1];
+                  String[] encodings = headerValue.split(",");
+                  for (String encoding : encodings) {
+                      acceptEncodings.add(encoding.trim());
+                  }
               }
           }
 
@@ -102,17 +108,18 @@ public class Main {
           } else if (path.matches("/echo/.*")) {
               String message = path.split("/")[2];
               int length = message.length();
-              if (acceptEncoding.equals("invalid-encoding")){
-                  clientSocket.getOutputStream().write(
-                          ("HTTP/1.1 200 OK\r\n" //Status code
-                                  +"Content-Type: text/plain\r\nContent-Length: "+ length +"\r\n\r\n" //Headers
-                                  + message //Response Body
-                          ).getBytes()
-                  );
-              } else {
+              if (acceptEncodings.contains("gzip")) {
                   clientSocket.getOutputStream().write(
                           ("HTTP/1.1 200 OK\r\n" //Status code
                                   +"Content-Type: text/plain\r\nContent-Length: "+ length +"\r\nContent-Encoding: "+ acceptEncoding +"\r\n\r\n" //Headers
+                                  + message //Response Body
+                          ).getBytes()
+                  );
+
+              } else {
+                  clientSocket.getOutputStream().write(
+                          ("HTTP/1.1 200 OK\r\n" //Status code
+                                  +"Content-Type: text/plain\r\nContent-Length: "+ length +"\r\n\r\n" //Headers
                                   + message //Response Body
                           ).getBytes()
                   );
