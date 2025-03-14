@@ -64,19 +64,26 @@ public class Main {
           String path = "";
           String userAgent = "";
           String body = "";
+          String acceptEncoding = "";
           int contentLength = 0;
+          //Request Line
+          line = in.readLine();
+          if (line.startsWith("GET") || line.startsWith("POST")) {
+              method = line.split(" ")[0];
+              path = line.split(" ")[1];
+          }
+
           while ((line = in.readLine()) != null && !line.isEmpty()) {
               System.out.println(line);
 
-              if (line.startsWith("GET") || line.startsWith("POST")) {
-                  method = line.split(" ")[0];
-                  path = line.split(" ")[1];
-              }
               if (line.startsWith("User-Agent")) {
                   userAgent = line.split(" ",2)[1];
               }
               if (line.startsWith("Content-Length")) {
-                      contentLength = Integer.parseInt(line.split(" ")[1]);
+                  contentLength = Integer.parseInt(line.split(" ")[1]);
+              }
+              if (line.startsWith("Accept-Encoding")){
+                  acceptEncoding = line.split(" ")[1];
               }
           }
 
@@ -95,12 +102,21 @@ public class Main {
           } else if (path.matches("/echo/.*")) {
               String message = path.split("/")[2];
               int length = message.length();
-              clientSocket.getOutputStream().write(
-                      ("HTTP/1.1 200 OK\r\n" //Status code
-                              +"Content-Type: text/plain\r\nContent-Length: "+ length +"\r\n\r\n" //Headers
-                              + message //Response Body
-                      ).getBytes()
-              );
+              if (acceptEncoding.equals("invalid-encoding")){
+                  clientSocket.getOutputStream().write(
+                          ("HTTP/1.1 200 OK\r\n" //Status code
+                                  +"Content-Type: text/plain\r\nContent-Length: "+ length +"\r\n\r\n" //Headers
+                                  + message //Response Body
+                          ).getBytes()
+                  );
+              } else {
+                  clientSocket.getOutputStream().write(
+                          ("HTTP/1.1 200 OK\r\n" //Status code
+                                  +"Content-Type: text/plain\r\nContent-Length: "+ length +"\r\nContent-Encoding: "+ acceptEncoding +"\r\n\r\n" //Headers
+                                  + message //Response Body
+                          ).getBytes()
+                  );
+              }
           } else if (path.equals("/user-agent"))
           {
               int length = userAgent.length();
